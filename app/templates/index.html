@@ -1,0 +1,563 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+  <meta charset="UTF-8" />
+  <title>NCPyVisual - Wersja Webowa (Format INI - Tryb Batch)</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/fabric.js/5.3.1/fabric.min.js"></script>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/notyf@3/notyf.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/notyf@3/notyf.min.js"></script>
+  <style>
+    html, body { height:100%; margin:0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background:#f0f2f5; overflow:hidden; }
+    .app { display:flex; flex-direction:column; height:100%; }
+    .app__header { height:56px; background:#fff; border-bottom:1px solid #d9d9d9; display:flex; align-items:center; padding:0 16px; }
+    .app__header h1 { font-size:1.25rem; margin:0; }
+    .app__main { display:flex; flex:1; min-height:0; }
+    .side { width:320px; background:#fafafa; border-right:1px solid #d9d9d9; padding:16px; overflow:auto; }
+    .side h3 { margin:16px 0 8px; }
+    .block { background:#fff; border:1px solid #e3e3e3; border-radius:8px; padding:12px; margin-bottom:12px; }
+    .form-row { margin-bottom:10px; }
+    .form-row label { display:block; font-weight:600; margin-bottom:4px; }
+    .form-row input[type="text"], .form-row input[type="password"], .form-row input[type="number"] { width:100%; padding:8px; border:1px solid #ccc; border-radius:6px; box-sizing: border-box; }
+    .btn { width:100%; padding:10px; border:0; border-radius:8px; cursor:pointer; margin-top:6px; font-size:0.95rem; }
+    .btn--primary { background:#007bff; color:#fff; }
+    .btn--success { background:#28a745; color:#fff; }
+    .btn--warn { background:#ffc107; color:#000; }
+    .btn--danger { background:#dc3545; color:#fff; }
+    .btn--muted { background:#6c757d; color:#fff; }
+    .content { flex:1; display:flex; align-items:center; justify-content:center; padding:16px; overflow:auto; background:#e9e9e9; }
+    #image-canvas { background:#fff; box-shadow:0 4px 8px rgba(0,0,0,.08); }
+    #loader { position:fixed; inset:0; display:none; align-items:center; justify-content:center; background:rgba(255,255,255,.7); z-index:999; }
+    .spinner { width:56px; height:56px; border-radius:50%; border:8px solid #eee; border-top-color:#3498db; animation:spin 1s linear infinite; }
+    @keyframes spin{to{transform:rotate(360deg)}}
+    .gallery { max-height:220px; overflow:auto; border:1px solid #ddd; background:#fff; border-radius:6px; padding:6px; }
+    .gallery img { width:100%; max-width:260px; margin:6px auto; display:block; cursor:pointer; border:2px solid transparent; border-radius:4px; }
+    .gallery img:hover{ border-color:#3498db; }
+    input[type="file"]{ display:none; }
+    .filelike { display:inline-block; width:100%; text-align:center; padding:10px; border:1px solid #ccc; border-radius:8px; cursor:pointer; background:#f9f9f9; box-sizing: border-box; }
+    .panel-title { margin-top:14px; border-top:2px solid #ddd; padding-top:10px; font-size:1.05rem; }
+    pre { white-space:pre-wrap; word-wrap:break-word; background:#fff; border:1px solid #eee; border-radius:8px; padding:10px; max-height: 300px; overflow-y: auto; }
+    .result-summary { background:#e8f5e8; border:1px solid #4caf50; border-radius:6px; padding:8px; margin:8px 0; }
+    .result-error { background:#ffe8e8; border:1px solid #f44336; border-radius:6px; padding:8px; margin:8px 0; }
+    .plate-result { background:#e3f2fd; border-left:4px solid #2196f3; padding:8px; margin:4px 0; }
+    .vehicle-result { background:#f3e5f5; border-left:4px solid #9c27b0; padding:8px; margin:4px 0; }
+  </style>
+</head>
+<body>
+<div id="loader"><div class="spinner"></div></div>
+<div class="app">
+  <header class="app__header"><h1>NCPyVisual 📈 (Format INI - Tryb Batch)</h1></header>
+  <main class="app__main">
+    <aside class="side">
+
+      <div class="block">
+        <h3>1) Import z terminala</h3>
+        <div class="form-row">
+          <label for="device-ip">Adres IP terminala</label>
+          <input id="device-ip" type="text" placeholder="np. 172.16.3.13">
+        </div>
+        <div class="form-row">
+          <label for="device-pass">Hasło (root)</label>
+          <input id="device-pass" type="password" placeholder="jeśli wymagane">
+        </div>
+        <button id="btn-import" class="btn btn--primary">Pobierz konfigurację</button>
+      </div>
+
+      <div class="block">
+        <h3>2) Najnowsze zdjęcia</h3>
+        <div class="form-row">
+          <label for="image-count">Ilość</label>
+          <input id="image-count" type="number" min="1" max="100" value="10">
+        </div>
+        <button id="btn-fetch" class="btn btn--primary">Pobierz i wyświetl</button>
+        <div id="gallery" class="gallery"></div>
+      </div>
+
+      <div class="block">
+        <h3>Obraz & ROI</h3>
+        <label for="image-input" class="filelike">Wczytaj obraz (.jpg/.png)</label>
+        <input id="image-input" type="file" accept=".jpg,.jpeg,.png">
+        <label for="xml-input" class="filelike" style="margin-top:6px;">Wczytaj ROI z XML</label>
+        <input id="xml-input" type="file" accept=".xml">
+        <button id="btn-draw" class="btn">Rysuj ROI</button>
+        <button id="btn-clear" class="btn btn--muted">Wyczyść ROI</button>
+      </div>
+
+      <div class="block">
+        <h3>3) Konfiguracja / eksport</h3>
+        <div class="form-row"><label for="serial-number">Numer seryjny</label><input id="serial-number" type="text" placeholder="np. 593-072-73194"></div>
+        <div class="form-row"><label for="location-id">ID Lokalizacji</label><input id="location-id" type="text" placeholder="np. WSC.3.069"></div>
+        <div class="form-row"><label for="gps-lat">Szer. geogr.</label><input id="gps-lat" type="text" placeholder="51.2533333"></div>
+        <div class="form-row"><label for="gps-lon">Dł. geogr.</label><input id="gps-lon" type="text" placeholder="22.5478611"></div>
+        <div class="panel-title">Zaawansowane</div>
+        <div class="form-row"><label for="backend-addr">Adres fotoradaru</label><input id="backend-addr" type="text" placeholder="np. 172.20.2.23"></div>
+        <div class="form-row"><label for="swdallow-masks">SWD Allow</label><input id="swdallow-masks" type="text" placeholder="172.16.0.0/24 ..."></div>
+        <div class="form-row"><label for="nativeallow-masks">Native Allow</label><input id="nativeallow-masks" type="text" placeholder="0.0.0.0/0"></div>
+        <button id="btn-package" class="btn btn--success">Generuj pakiet</button>
+      </div>
+
+      <div id="panel-props" class="block" style="display:none;">
+        <h3>Właściwości ROI</h3>
+        <div class="form-row"><label for="roi-id">ID</label><input id="roi-id" type="text" readonly></div>
+        <div class="form-row"><label>Kąt</label><input class="param-input" data-param="angle" id="param-angle" type="number" step="0.1"></div>
+        <div class="form-row"><label>Zoom</label><input class="param-input" data-param="zoom" id="param-zoom" type="number" step="0.01"></div>
+        <div class="form-row"><label>Offset H</label><input class="param-input" data-param="reflexOffsetH" id="param-oh" type="number"></div>
+        <div class="form-row"><label>Offset V</label><input class="param-input" data-param="reflexOffsetV" id="param-ov" type="number"></div>
+        <div class="form-row"><label>Skew H</label><input class="param-input" data-param="skewH" id="param-sh" type="number" step="0.01"></div>
+        <div class="form-row"><label>Skew V</label><input class="param-input" data-param="skewV" id="param-sv" type="number" step="0.01"></div>
+        <button id="btn-edit" class="btn btn--warn">Edytuj kształt</button>
+        <button id="btn-verify" class="btn btn--primary">Testuj ROI z NCSim</button>
+        <button id="btn-del" class="btn btn--danger">Usuń ROI</button>
+      </div>
+
+      <div id="panel-verify" class="block" style="display:none;">
+        <h3>Wyniki weryfikacji</h3>
+        <div id="verify-summary"></div>
+        <pre id="verify-out"></pre>
+      </div>
+
+    </aside>
+    <section class="content">
+      <canvas id="image-canvas"></canvas>
+    </section>
+  </main>
+</div>
+
+<script>
+  const notyf = new Notyf({ duration: 4000, position: { x:'right', y:'top' }});
+  let canvas, drawing=false, editPoly=null, tmpPts=[], tmpDots=[], roiCount=0, storedRois = [];
+
+  const roiColors = [
+    { fill:'rgba(0,255,0,.3)', stroke:'green' },
+    { fill:'rgba(255,255,0,.3)', stroke:'orange' },
+    { fill:'rgba(255,0,255,.3)', stroke:'magenta' },
+    { fill:'rgba(0,255,255,.3)', stroke:'cyan' },
+    { fill:'rgba(255,165,0,.3)', stroke:'darkorange' },
+  ];
+
+  const $ = (id)=>document.getElementById(id);
+  const $loader = $('loader');
+  const showLoader = ()=> $loader.style.display='flex';
+  const hideLoader = ()=> $loader.style.display='none';
+
+  document.addEventListener('DOMContentLoaded', ()=>{
+    canvas = new fabric.Canvas('image-canvas');
+    bindUI();
+  });
+
+  function bindUI(){
+    $('btn-import').onclick = importFromDevice;
+    $('btn-fetch').onclick = fetchImages;
+    $('btn-package').onclick = generatePackage;
+    $('btn-draw').onclick = startDraw;
+    $('btn-clear').onclick = clearRoi;
+    $('btn-edit').onclick = toggleEdit;
+    $('btn-del').onclick = ()=> deleteRoi(true);
+    $('btn-verify').onclick = verifyScene;
+
+    $('image-input').onchange = loadImage;
+    $('xml-input').onchange = loadXml;
+
+    canvas.on('mouse:down', onMouseDown);
+    canvas.on('selection:created', onSelect);
+    canvas.on('selection:updated', onSelect);
+    canvas.on('selection:cleared', onClearSel);
+
+    document.querySelectorAll('.param-input').forEach(inp=>{
+      inp.addEventListener('input', onParamChange);
+    });
+
+    document.addEventListener('keydown', (e)=>{
+      if(document.activeElement.tagName==='INPUT') return;
+      if(e.key==='Delete' || e.key==='Backspace') deleteRoi(false);
+    });
+
+    const cc = document.querySelector('.canvas-container');
+    if(cc) cc.addEventListener('contextmenu', (e)=>{ e.preventDefault(); if(drawing) finishPolygon(); });
+  }
+
+  function loadImage(ev){
+    const f = ev.target.files[0]; if(!f) return;
+    const url = URL.createObjectURL(f);
+
+    fabric.Image.fromURL(url, (img) => {
+        canvas.setBackgroundImage(img, canvas.renderAll.bind(canvas), {});
+        canvas.setWidth(img.width);
+        canvas.setHeight(img.height);
+        canvas.renderAll();
+        URL.revokeObjectURL(url);
+
+        // POPRAWKA: Rysuj zapisane ROI po załadowaniu obrazu
+        if (storedRois.length > 0) {
+            drawRois(storedRois);
+            storedRois = []; // Wyczyść po narysowaniu
+            notyf.info('Narysowano wcześniej zaimportowane ROI.');
+        }
+    });
+  }
+
+  function startDraw(){
+    if(editPoly) toggleEdit();
+    drawing = true; canvas.selection = false;
+    $('btn-draw').disabled = true; $('btn-draw').textContent = 'Rysowanie… (PPM kończy)';
+  }
+
+  function onMouseDown(opt){
+    if(!drawing) return;
+    if(opt.e.button !== 0) return;
+    const p = canvas.getPointer(opt.e);
+
+    if (!canvas.backgroundImage) {
+        notyf.error("Najpierw załaduj obraz tła.");
+        resetDraw();
+        return;
+    }
+
+    tmpPts.push({x: p.x, y: p.y});
+    const dot = new fabric.Circle({ left:p.x, top:p.y, radius:3, fill:'red', selectable:false, originX:'center', originY:'center' });
+    canvas.add(dot); tmpDots.push(dot); canvas.renderAll();
+  }
+
+  function finishPolygon(){
+    if(tmpPts.length < 3){ resetDraw(); return; }
+    const color = roiColors[roiCount % roiColors.length]; roiCount++;
+    const bg = canvas.backgroundImage;
+    if (!bg) { resetDraw(); return; }
+
+    const relativePoints = tmpPts.map(p => ({ x: p.x / bg.width, y: p.y / bg.height }));
+
+    const poly = new fabric.Polygon(tmpPts, {
+      fill: color.fill, stroke: color.stroke, strokeWidth:2, selectable:true, hasControls:true,
+      customData: { id:`ROI-${roiCount}`, angle:0, zoom:1, reflexOffsetH:0, reflexOffsetV:0, skewH:0, skewV:0, points: relativePoints }
+    });
+    canvas.add(poly); resetDraw();
+  }
+
+  function resetDraw(){
+    tmpDots.forEach(d=>canvas.remove(d)); tmpDots=[]; tmpPts=[]; drawing=false; canvas.selection = true;
+    $('btn-draw').disabled=false; $('btn-draw').textContent='Rysuj ROI'; canvas.renderAll();
+  }
+
+  function onSelect(e){
+    if(editPoly) toggleEdit();
+    const o = e.selected[0];
+    if(o && o.customData){
+      $('panel-props').style.display='block';
+      $('roi-id').value = o.customData.id || '';
+      document.querySelectorAll('.param-input').forEach(inp=>{
+        const k = inp.dataset.param; inp.value = o.customData[k] ?? 0;
+      });
+    } else $('panel-props').style.display='none';
+  }
+  function onClearSel(){ if(editPoly) toggleEdit(); $('panel-props').style.display='none'; }
+  function onParamChange(e){
+    const o = canvas.getActiveObject(); if(!(o&&o.customData)) return;
+    const k = e.target.dataset.param; o.customData[k] = parseFloat(e.target.value) || 0;
+  }
+
+  function deleteRoi(confirmFirst){
+    const o = canvas.getActiveObject(); if(!o){ if(confirmFirst) notyf.error('Nie zaznaczono ROI'); return; }
+    if(confirmFirst && !confirm(`Usunąć ${o.customData.id}?`)) return;
+    canvas.remove(o); notyf.success('Usunięto ROI'); canvas.renderAll();
+  }
+
+  function toggleEdit(){
+    const btn = $('btn-edit');
+    if(editPoly){
+      editPoly.edit = false;
+      const bg = canvas.backgroundImage;
+      if (bg && editPoly.points) {
+        const matrix = editPoly.calcTransformMatrix();
+        editPoly.customData.points = editPoly.points.map(p => {
+            const transformedPoint = fabric.util.transformPoint({x: p.x, y: p.y}, matrix);
+            return { x: transformedPoint.x / bg.width, y: transformedPoint.y / bg.height };
+        });
+      }
+      canvas.setActiveObject(editPoly);
+      btn.textContent='Edytuj kształt'; btn.className='btn btn--warn';
+      editPoly = null; canvas.renderAll();
+    } else {
+      const o = canvas.getActiveObject();
+      if(!(o && o.type==='polygon')){ notyf.error('Zaznacz poligon'); return; }
+      editPoly = o; editPoly.edit = true; btn.textContent='Zatwierdź'; btn.className='btn btn--primary';
+      canvas.setActiveObject(editPoly); canvas.renderAll();
+    }
+  }
+
+  function clearRoi(){
+    if(!confirm('Wyczyścić wszystkie ROI?')) return;
+    canvas.getObjects().filter(o=>o.customData).forEach(o=>canvas.remove(o)); roiCount=0; canvas.renderAll(); notyf.success('Wyczyszczono ROI');
+  }
+
+  function roisOut(){
+      return canvas.getObjects().filter(o => o.customData).map(o => {
+          const bg = canvas.backgroundImage;
+          if (bg && o.points && o.dirty) { // Re-calculate points if object was moved/scaled
+                const matrix = o.calcTransformMatrix();
+                const updatedPoints = o.points.map(p => {
+                    const transformedPoint = fabric.util.transformPoint({x: p.x, y: p.y}, matrix);
+                    return { x: transformedPoint.x / bg.width, y: transformedPoint.y / bg.height };
+                });
+                return { ...o.customData, points: updatedPoints };
+          }
+          return o.customData;
+      });
+  }
+
+  async function importFromDevice(){
+    const ip=$('device-ip').value, password=$('device-pass').value;
+    if(!ip) return notyf.error('Podaj IP terminala');
+    showLoader();
+    try{
+      const res = await fetch('/import-from-device/', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ ip, password })});
+      if(!res.ok){ const e=await res.json(); throw new Error(e.detail || 'Błąd importu'); }
+      const data = await res.json();
+
+      $('serial-number').value = data.serialNumber || '';
+      $('location-id').value = data.locationId || '';
+      $('gps-lat').value = data.gpsLat || '';
+      $('gps-lon').value = data.gpsLon || '';
+      $('backend-addr').value = data.backendAddr || '';
+      $('swdallow-masks').value = data.swdallowMasks || '';
+      $('nativeallow-masks').value = data.nativeallowMasks || '';
+
+      // POPRAWKA: Zapisz ROI, zamiast próbować je rysować
+      if(data.rois && data.rois.length){
+          storedRois = data.rois;
+          notyf.success(`Zaimportowano konfigurację i ${data.rois.length} ROI. Zostaną narysowane po wczytaniu obrazu.`);
+      }
+      else {
+          storedRois = [];
+          canvas.getObjects().filter(o=>o.customData).forEach(o=>canvas.remove(o));
+          canvas.renderAll();
+          notyf.success('Zaimportowano konfigurację. Brak ROI na urządzeniu.');
+      }
+    }catch(e){ notyf.error(e.message); } finally{ hideLoader(); }
+  }
+
+  function drawRois(list){
+    canvas.getObjects().filter(o=>o.customData).forEach(o=>canvas.remove(o));
+    const bg = canvas.backgroundImage;
+    if (!bg) {
+        storedRois = list;
+        notyf.error("Błąd: brak tła. ROI zostaną narysowane po wczytaniu obrazu.");
+        return;
+    }
+
+    list.forEach((r,i)=>{
+      const color = roiColors[i % roiColors.length];
+      const absolutePoints = (r.points && r.points.length)
+        ? r.points.map(p => ({ x: p.x * bg.width, y: p.y * bg.height }))
+        : [{x:40+i*10,y:40+i*10},{x:160+i*10,y:40+i*10},{x:160+i*10,y:160+i*10},{x:40+i*10,y:160+i*10}];
+
+      const cd = {...r};
+      const poly = new fabric.Polygon(absolutePoints, { fill:color.fill, stroke:color.stroke, strokeWidth:2, selectable:true, hasControls:true, customData:cd, objectCaching: false });
+      canvas.add(poly);
+    });
+    roiCount = list.length; canvas.renderAll();
+  }
+
+  async function fetchImages(){
+    const ip=$('device-ip').value, password=$('device-pass').value, count=parseInt($('image-count').value||'10',10);
+    if(!ip) return notyf.error('Podaj IP terminala');
+    $('gallery').innerHTML='';
+    showLoader();
+    try{
+      const res = await fetch('/fetch-device-images/', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ ip, password, count })});
+      if(!res.ok){ const e=await res.json(); throw new Error(e.detail || 'Błąd'); }
+      const data = await res.json();
+      if(data.images && data.images.length){
+        notyf.success(`Pobrano ${data.images.length} zdjęć`);
+        data.images.forEach(it=>{
+          const img=document.createElement('img'); img.src=it.data; img.title=it.filename;
+          img.onclick = ()=>{
+            fabric.Image.fromURL(img.src, (fabricImg) => {
+                canvas.setBackgroundImage(fabricImg, canvas.renderAll.bind(canvas));
+                canvas.setWidth(fabricImg.width);
+                canvas.setHeight(fabricImg.height);
+                notyf.success('Załadowano tło');
+
+                // POPRAWKA: Rysuj zapisane ROI po załadowaniu obrazu
+                if (storedRois.length > 0) {
+                    drawRois(storedRois);
+                    storedRois = []; // Wyczyść po narysowaniu
+                    notyf.info('Narysowano wcześniej zaimportowane ROI.');
+                }
+            });
+          };
+          $('gallery').appendChild(img);
+        });
+      } else notyf.success('Brak zdjęć na urządzeniu.');
+    }catch(e){ notyf.error(e.message); } finally{ hideLoader(); }
+  }
+
+  async function loadXml(ev){
+    const f = ev.target.files[0]; if(!f) return;
+    const reader = new FileReader();
+    reader.onload = async (e)=>{
+        const parser = new DOMParser();
+        const xmlDoc = parser.parseFromString(e.target.result, "text/xml");
+        const roisFromXml = [];
+        const roiNodes = xmlDoc.getElementsByTagName("roi");
+        if (!canvas.backgroundImage && roiNodes.length > 0) {
+            notyf.error("Proszę najpierw załadować obraz tła przed importem ROI z XML.");
+            return;
+        }
+
+        for (let i = 0; i < roiNodes.length; i++) {
+            const node = roiNodes[i];
+            const pointsStr = node.getElementsByTagName("points")[0]?.textContent || '';
+            const points = pointsStr.split(';').filter(p=>p).map(p => ({ x: parseFloat(p.split(',')[0]), y: parseFloat(p.split(',')[1]) }));
+            roisFromXml.push({
+                id: node.getAttribute("id"),
+                points: points,
+                angle: parseFloat(node.getElementsByTagName("angle")[0]?.textContent || 0),
+                zoom: parseFloat(node.getElementsByTagName("zoom")[0]?.textContent || 1),
+                reflexOffsetH: parseInt(node.getElementsByTagName("reflexOffsetH")[0]?.textContent || 0, 10),
+                reflexOffsetV: parseInt(node.getElementsByTagName("reflexOffsetV")[0]?.textContent || 0, 10),
+                skewH: parseFloat(node.getElementsByTagName("skewH")[0]?.textContent || 0),
+                skewV: parseFloat(node.getElementsByTagName("skewV")[0]?.textContent || 0),
+            });
+        }
+        if(roisFromXml.length > 0){
+            drawRois(roisFromXml);
+            notyf.success(`Wczytano ${roisFromXml.length} ROI z pliku XML.`);
+        } else {
+            notyf.error('Nie znaleziono ROI w pliku XML.');
+        }
+    };
+    reader.readAsText(f);
+  }
+
+  function formatVerificationResults(results) {
+    let summaryHtml = '';
+    let detailsText = '';
+
+    if (results.verification_type === 'ncsim_verification') {
+      const sim_results = results.results;
+      summaryHtml = `
+        <div class="result-summary">
+          <strong>📊 PODSUMOWANIE SYMULACJI (NCSim)</strong><br>
+          ✅ Rozpoznanie Silne (recog-strong): <strong>${sim_results.recog_strong !== null ? sim_results.recog_strong.toFixed(2) + '%' : 'N/A'}</strong><br>
+          ☑️ Rozpoznanie Słabe (recog-weak): <strong>${sim_results.recog_weak !== null ? sim_results.recog_weak.toFixed(2) + '%' : 'N/A'}</strong><br>
+          ⚙️ Metoda: ${results.processing_method}<br>
+          ⏱️ Czas przetwarzania: ${sim_results.processing_time || 'N/A'}
+        </div>`;
+
+      detailsText = `=== WYNIKI SYMULACJI NCSIM ===\n\n`;
+      detailsText += `Pełny wynik z terminala:\n--------------------------\n`;
+      detailsText += sim_results.ncsim_output || 'Brak danych wyjściowych z ncsim.';
+      detailsText += `\n--------------------------\n\n`;
+
+      if(sim_results.processing_successful){
+          detailsText += "✅ Symulacja zakończona powodzeniem.\n";
+      } else if (sim_results.error) {
+          detailsText += `❌ Błąd podczas przetwarzania wyniku: ${sim_results.error}\n`;
+      } else {
+          detailsText += "⚠️ Symulacja nie zwróciła wyniku lub wynik był niejednoznaczny.\n";
+      }
+
+    } else {
+        summaryHtml = `<div class="result-error">Nieznany format odpowiedzi: ${results.verification_type}</div>`;
+        detailsText = JSON.stringify(results, null, 2);
+    }
+    return { summaryHtml, detailsText };
+  }
+
+  async function generatePackage(){
+    if(editPoly) toggleEdit();
+    const rois = roisOut();
+    if(!rois.length) return notyf.error('Brak ROI');
+
+    const deployment = {
+      serialNumber:$('serial-number').value,
+      locationId:$('location-id').value,
+      gpsLat:$('gps-lat').value,
+      gpsLon:$('gps-lon').value,
+      backendAddr:$('backend-addr').value,
+      swdallowMasks:$('swdallow-masks').value,
+      nativeallowMasks:$('nativeallow-masks').value
+    };
+    if(!deployment.locationId) return notyf.error('Wymagane ID lokalizacji');
+
+    showLoader();
+    try{
+      const res = await fetch('/generate-package/', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ rois, deployment }) });
+      if(!res.ok) { const err = await res.json(); throw new Error(err.detail || 'Błąd serwera'); }
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href=url;
+      a.download=`ncpy_package_${deployment.locationId}_${new Date().toISOString().slice(0,10)}.zip`;
+      a.click();
+      URL.revokeObjectURL(url);
+      notyf.success('Pobrano pakiet');
+    }catch(e){ notyf.error(e.message); } finally{ hideLoader(); }
+  }
+
+  async function verifyScene(){
+    if(editPoly) toggleEdit();
+    const rois = roisOut();
+    if(!rois.length) return notyf.error('Dodaj ROI przed weryfikacją');
+
+    if (!canvas.backgroundImage) {
+        return notyf.error('Załaduj obraz tła, aby uruchomić weryfikację NCSim.');
+    }
+    const imageBase64 = canvas.toDataURL();
+
+    const deployment = {
+         serialNumber:$('serial-number').value,
+         locationId:$('location-id').value,
+         gpsLat:$('gps-lat').value,
+         gpsLon:$('gps-lon').value,
+         backendAddr:$('backend-addr').value,
+         swdallowMasks:$('swdallow-masks').value,
+         nativeallowMasks:$('nativeallow-masks').value
+       };
+
+    const terminalIp = $('device-ip').value;
+    if(!terminalIp) return notyf.error('Podaj IP terminala');
+
+    $('panel-verify').style.display='block';
+    $('verify-summary').innerHTML = '<div style="color: #2196f3;">🔄 Uruchamiam symulację ROI z NCSim...</div>';
+    $('verify-out').textContent = 'Łączenie z terminalem, przygotowywanie konfiguracji i obrazu...';
+
+    showLoader();
+    try{
+      const res = await fetch('/verify-scene/', {
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({
+            package:{ rois, deployment },
+            password:$('device-pass').value,
+            terminal_ip: terminalIp,
+            image_base64: imageBase64
+        })
+      });
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.detail || 'Nieznany błąd serwera');
+      }
+
+      if (data.success && data.parsed_recognition_data) {
+        const { summaryHtml, detailsText } = formatVerificationResults(data.parsed_recognition_data);
+        $('verify-summary').innerHTML = summaryHtml;
+        $('verify-out').textContent = detailsText;
+        notyf.success('Symulacja zakończona');
+      } else {
+        $('verify-summary').innerHTML = '<div class="result-error">❌ Błąd przetwarzania wyników</div>';
+        $('verify-out').textContent = `Błąd: ${data.error || 'Brak danych'}`;
+        notyf.error('Błąd podczas symulacji');
+      }
+
+    }catch(e){
+      $('verify-summary').innerHTML = `<div class="result-error">❌ Błąd krytyczny: ${e.message}</div>`;
+      $('verify-out').textContent = 'Sprawdź konsolę przeglądarki i logi serwera FastAPI, aby uzyskać więcej informacji.';
+      notyf.error('Weryfikacja nieudana: ' + e.message, {duration: 6000});
+    }finally{
+      hideLoader();
+    }
+  }
+</script>
+</body>
+</html>
