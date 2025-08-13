@@ -1,4 +1,4 @@
-#!/home/kwasiucionek/Nextcloud/Praca/ncar/ncpvisual2/ncpyvisual2/venv/bin/python3
+#!/home/kwasiucionek/Nextcloud/Praca/ncar/ncpvisual2/ncpyvisual_web/venv/bin/python3
 # -*- coding: utf-8 -*-
 import re
 import sys

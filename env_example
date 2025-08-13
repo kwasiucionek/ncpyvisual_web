@@ -1,0 +1,10 @@
+# .env.example - PRZYKŁAD KONFIGURACJI ZMIENNYCH ŚRODOWISKOWYCH
+
+# Jump host credentials (wymagane dla NCSim przez SSH)
+JUMP_HOST_USER=kwasiucionek
+JUMP_HOST_PASS=rooNg2Ph
+
+
+# Dodatkowe ustawienia (opcjonalne)
+LOG_LEVEL=INFO
+DEBUG=False

@@ -1,0 +1,128 @@
+# NCPyVisual Web - Architektura Systemu
+
+## 🏗️ Poprawiona architektura (NCShot lokalnie na terminalach)
+
+```
+┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
+│   Web Browser   │    │   Jump Host     │    │   Terminal      │
+│   localhost:8000│    │ 10.10.33.113   │    │ 172.16.3.13    │
+└─────────┬───────┘    └─────────┬───────┘    └─────────┬───────┘
+          │                      │                      │
+          │ HTTP Request         │                      │
+          │ (ROI + Image)        │                      │
+          ▼                      │                      │
+┌─────────────────┐              │                      │
+│ FastAPI Server  │              │                      │
+│ (Python)        │              │                      │
+│                 │              │                      │
+│ ┌─────────────┐ │              │                      │
+│ │ NCShot      │ │ SSH Tunnel   │                      │
+│ │ Handler     │ │◄─────────────┼──────────────────────┤
+│ └─────────────┘ │              │                      │ port 5543
+│                 │              │                      │ ┌─────────────┐
+│ ┌─────────────┐ │              │                      │ │   NCShot    │
+│ │ NCSim       │ │ SSH Exec     │                      │ │  (HTTP API) │
+│ │ Handler     │ │◄─────────────┼──────────────────────┤ └─────────────┘
+│ └─────────────┘ │              │                      │ port 22
+└─────────────────┘              │                      │ ┌─────────────┐
+                                 │                      │ │    SSH      │
+                                 │                      │ │  (NCSim)    │
+                                 │                      │ └─────────────┘
+```
+
+## 🔄 Flow procesów
+
+### **NCShot Process Flow:**
+```
+1. [FastAPI] Połącz SSH → Jump Host
+2. [FastAPI] Połącz SSH → Terminal (przez Jump)  
+3. [FastAPI] Utwórz SSH tunnel → localhost:random → terminal:5543
+4. [FastAPI] HTTP PUT config → tunnel → NCShot  
+5. [FastAPI] HTTP PUT image → tunnel → NCShot
+6. [NCShot] Przetworz obraz → Zwróć XML + token
+7. [FastAPI] HTTP GET plates images → tunnel → NCShot
+8. [FastAPI] HTTP GET release token → tunnel → NCShot
+9. [FastAPI] Zamknij tunnel i SSH connections
+10. [FastAPI] Zwróć parsed results → Browser
+```
+
+### **NCSim Process Flow:**
+```
+1. [FastAPI] Połącz SSH → Jump Host
+2. [FastAPI] Połącz SSH → Terminal (przez Jump)
+3. [FastAPI] SFTP copy → ncsim binary + config + image + syntax
+4. [FastAPI] SSH exec → cd /tmp && ./ncsim -mconfig.ini image.jpg  
+5. [NCSim] Przetworz → Output text (recog-strong%, recog-weak%)
+6. [FastAPI] Pobierz output + Wyczyść /tmp files
+7. [FastAPI] Zamknij SSH connections  
+8. [FastAPI] Zwróć parsed results → Browser
+```
+
+## 🌐 Network Requirements
+
+### **Dostęp sieciowy:**
+- **Browser** → **FastAPI Server**: HTTP/8000 (localhost)
+- **FastAPI Server** → **Jump Host**: SSH/22 (10.10.33.113)
+- **Jump Host** → **Terminal**: SSH/22 + HTTP/5543 (172.16.3.x)
+
+### **Credentials required:**
+- **Jump Host**: `JUMP_HOST_USER` + `JUMP_HOST_PASS` (w .env)
+- **Terminal**: `root` + `device_password` (z formularza)
+
+## 📊 Porównanie metod
+
+| **Aspekt** | **🎯 NCShot** | **🔬 NCSim** |
+|------------|---------------|--------------|
+| **Protokół** | HTTP przez SSH tunnel | SSH exec |
+| **Czas wykonania** | ~5-8s | ~10-15s |
+| **Wyniki** | Pełny XML + obrazy | Tylko procenty |
+| **Zasoby** | Używa NCShot daemon | Tworzy temp environment |
+| **Stabilność** | Stabilny (HTTP API) | Zależy od plików binary |
+| **Debugging** | HTTP status codes | SSH output parsing |
+
+## 🔧 Konfiguracja środowiska
+
+### **Terminal requirements:**
+```bash
+# NCShot daemon running:
+systemctl status ncshot  # should be active
+netstat -tlpn | grep :5543  # NCShot listening
+
+# NCSim requirements:  
+ls -la /neurocar/etc/syntax/  # syntax files
+ls -la /neurocar/etc/classreco77k-2016-07-29.dta  # DTA file
+```
+
+### **FastAPI server requirements:**
+```bash
+# Binary file:
+bin/ncsim  # executable file (chmod +x)
+
+# SSH credentials:
+.env file with JUMP_HOST_USER and JUMP_HOST_PASS
+
+# Python dependencies:
+pip install -r requirements.txt
+```
+
+## 🚨 Troubleshooting Points
+
+### **Connection failures:**
+1. **Jump Host unreachable** → Check VPN/network
+2. **Terminal unreachable** → Check terminal IP/status  
+3. **NCShot not responding** → Check systemctl status ncshot
+4. **SSH tunnel fails** → Check port 5543 availability
+
+### **Performance issues:**
+1. **NCShot slow** → Terminal overloaded or network latency
+2. **NCSim slow** → File transfer time or syntax loading
+3. **Tunnel timeout** → Increase NCSHOT_TIMEOUT in .env
+
+### **Authentication issues:**
+1. **Jump Host auth fails** → Check JUMP_HOST_USER/PASS in .env
+2. **Terminal auth fails** → Check device password in form
+3. **Permission denied** → Check SSH key/password auth methods
+
+---
+
+**Key Architecture Change**: NCShot runs **locally on each terminal** (port 5543), accessed via **SSH tunnel through jump host**, not on central server.

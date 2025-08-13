@@ -2,7 +2,7 @@
 <html lang="pl">
 <head>
   <meta charset="UTF-8" />
-  <title>NCPyVisual - Wersja Webowa (Format INI - Tryb Batch)</title>
+  <title>NCPyVisual - Wersja Webowa (NCSim + NCShot przez SSH)</title>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/fabric.js/5.3.1/fabric.min.js"></script>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/notyf@3/notyf.min.css">
   <script src="https://cdn.jsdelivr.net/npm/notyf@3/notyf.min.js"></script>
@@ -11,8 +11,7 @@
     .app { display:flex; flex-direction:column; height:100%; }
     .app__header { height:56px; background:#fff; border-bottom:1px solid #d9d9d9; display:flex; align-items:center; padding:0 16px; }
     .app__header h1 { font-size:1.25rem; margin:0; }
-    .app__main { display:flex; flex:1; min-height:0; }
-    .side { width:320px; background:#fafafa; border-right:1px solid #d9d9d9; padding:16px; overflow:auto; }
+    .side { width:340px; background:#fafafa; border-right:1px solid #d9d9d9; padding:16px; overflow:auto; }
     .side h3 { margin:16px 0 8px; }
     .block { background:#fff; border:1px solid #e3e3e3; border-radius:8px; padding:12px; margin-bottom:12px; }
     .form-row { margin-bottom:10px; }
@@ -24,7 +23,9 @@
     .btn--warn { background:#ffc107; color:#000; }
     .btn--danger { background:#dc3545; color:#fff; }
     .btn--muted { background:#6c757d; color:#fff; }
+    .btn--purple { background:#6f42c1; color:#fff; }
     .content { flex:1; display:flex; align-items:center; justify-content:center; padding:16px; overflow:auto; background:#e9e9e9; }
+    .app__main { display:flex; flex:1; min-height:0; }
     #image-canvas { background:#fff; box-shadow:0 4px 8px rgba(0,0,0,.08); }
     #loader { position:fixed; inset:0; display:none; align-items:center; justify-content:center; background:rgba(255,255,255,.7); z-index:999; }
     .spinner { width:56px; height:56px; border-radius:50%; border:8px solid #eee; border-top-color:#3498db; animation:spin 1s linear infinite; }
@@ -35,29 +36,44 @@
     input[type="file"]{ display:none; }
     .filelike { display:inline-block; width:100%; text-align:center; padding:10px; border:1px solid #ccc; border-radius:8px; cursor:pointer; background:#f9f9f9; box-sizing: border-box; }
     .panel-title { margin-top:14px; border-top:2px solid #ddd; padding-top:10px; font-size:1.05rem; }
-    pre { white-space:pre-wrap; word-wrap:break-word; background:#fff; border:1px solid #eee; border-radius:8px; padding:10px; max-height: 300px; overflow-y: auto; }
+    pre { white-space:pre-wrap; word-wrap:break-word; background:#fff; border:1px solid #eee; border-radius:8px; padding:10px; max-height: 400px; overflow-y: auto; font-size:0.85rem; }
     .result-summary { background:#e8f5e8; border:1px solid #4caf50; border-radius:6px; padding:8px; margin:8px 0; }
     .result-error { background:#ffe8e8; border:1px solid #f44336; border-radius:6px; padding:8px; margin:8px 0; }
-    .plate-result { background:#e3f2fd; border-left:4px solid #2196f3; padding:8px; margin:4px 0; }
-    .vehicle-result { background:#f3e5f5; border-left:4px solid #9c27b0; padding:8px; margin:4px 0; }
+    .plate-result { background:#e3f2fd; border-left:4px solid #2196f3; padding:8px; margin:4px 0; border-radius:4px; }
+    .vehicle-result { background:#f3e5f5; border-left:4px solid #9c27b0; padding:8px; margin:4px 0; border-radius:4px; }
+    .ncshot-result { background:#fff3e0; border-left:4px solid #ff9800; padding:8px; margin:4px 0; border-radius:4px; }
+    .verification-tabs { display:flex; gap:4px; margin-bottom:8px; }
+    .tab-btn { flex:1; padding:8px; border:1px solid #ccc; background:#f5f5f5; cursor:pointer; text-align:center; border-radius:4px; font-size:0.9rem; }
+    .tab-btn.active { background:#007bff; color:#fff; border-color:#007bff; }
+    .tab-content { display:none; }
+    .tab-content.active { display:block; }
+    .btn-group { display:flex; gap:4px; }
+    .btn-group .btn { margin-top:0; flex:1; }
+    .plate-image { max-width:100%; height:auto; border:1px solid #ddd; border-radius:4px; margin-top:6px; }
+    .tunnel-info { background:#e1f5fe; border:1px solid #01579b; border-radius:4px; padding:6px; margin:4px 0; font-size:0.85rem; }
+    .method-badge { display:inline-block; background:#17a2b8; color:#fff; padding:2px 6px; border-radius:3px; font-size:0.8rem; margin-left:4px; }
+    .ssh-warning { background:#fff3cd; border:1px solid #856404; color:#856404; border-radius:4px; padding:8px; margin:8px 0; font-size:0.9rem; }
   </style>
 </head>
 <body>
 <div id="loader"><div class="spinner"></div></div>
 <div class="app">
-  <header class="app__header"><h1>NCPyVisual 📈 (Format INI - Tryb Batch)</h1></header>
+  <header class="app__header"><h1>NCPyVisual 🔗 (NCSim + NCShot przez SSH)</h1></header>
   <main class="app__main">
     <aside class="side">
 
       <div class="block">
-        <h3>1) Import z terminala</h3>
+        <h3>1) Terminal docelowy</h3>
+        <div class="ssh-warning">
+          ⚠️ <strong>Oba narzędzia</strong> (NCSim i NCShot) wymagają dostępu SSH do terminala przez jump host
+        </div>
         <div class="form-row">
           <label for="device-ip">Adres IP terminala</label>
           <input id="device-ip" type="text" placeholder="np. 172.16.3.13">
         </div>
         <div class="form-row">
           <label for="device-pass">Hasło (root)</label>
-          <input id="device-pass" type="password" placeholder="jeśli wymagane">
+          <input id="device-pass" type="password" placeholder="hasło SSH">
         </div>
         <button id="btn-import" class="btn btn--primary">Pobierz konfigurację</button>
       </div>
@@ -105,14 +121,40 @@
         <div class="form-row"><label>Skew H</label><input class="param-input" data-param="skewH" id="param-sh" type="number" step="0.01"></div>
         <div class="form-row"><label>Skew V</label><input class="param-input" data-param="skewV" id="param-sv" type="number" step="0.01"></div>
         <button id="btn-edit" class="btn btn--warn">Edytuj kształt</button>
-        <button id="btn-verify" class="btn btn--primary">Testuj ROI z NCSim</button>
-        <button id="btn-del" class="btn btn--danger">Usuń ROI</button>
+        
+        <div class="panel-title">Weryfikacja ROI</div>
+        <div class="btn-group">
+          <button id="btn-verify" class="btn btn--primary">🔬 NCSim</button>
+          <button id="btn-verify-ncshot" class="btn btn--purple">🎯 NCShot</button>
+        </div>
+        <div style="font-size:0.8rem; color:#666; margin-top:4px; text-align:center;">
+          NCSim: symulacja | NCShot: pełna analiza
+        </div>
+        <button id="btn-del" class="btn btn--danger" style="margin-top:6px;">Usuń ROI</button>
       </div>
 
       <div id="panel-verify" class="block" style="display:none;">
         <h3>Wyniki weryfikacji</h3>
-        <div id="verify-summary"></div>
-        <pre id="verify-out"></pre>
+        <div class="verification-tabs">
+          <div class="tab-btn active" data-tab="summary">Podsumowanie</div>
+          <div class="tab-btn" data-tab="details">Szczegóły</div>
+          <div class="tab-btn" data-tab="raw">Raw Data</div>
+        </div>
+        
+        <div class="tab-content active" id="tab-summary">
+          <div id="verify-summary"></div>
+          <div id="verify-tunnel-info"></div>
+          <div id="verify-plates"></div>
+          <div id="verify-vehicles"></div>
+        </div>
+        
+        <div class="tab-content" id="tab-details">
+          <pre id="verify-details"></pre>
+        </div>
+        
+        <div class="tab-content" id="tab-raw">
+          <pre id="verify-raw"></pre>
+        </div>
       </div>
 
     </aside>
@@ -142,7 +184,22 @@
   document.addEventListener('DOMContentLoaded', ()=>{
     canvas = new fabric.Canvas('image-canvas');
     bindUI();
+    initTabs();
   });
+
+  function initTabs(){
+    document.querySelectorAll('.tab-btn').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        const targetTab = e.target.getAttribute('data-tab');
+        // Remove active from all tabs and contents
+        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+        document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+        // Add active to clicked tab and corresponding content
+        e.target.classList.add('active');
+        document.getElementById(`tab-${targetTab}`).classList.add('active');
+      });
+    });
+  }
 
   function bindUI(){
     $('btn-import').onclick = importFromDevice;
@@ -153,6 +210,7 @@
     $('btn-edit').onclick = toggleEdit;
     $('btn-del').onclick = ()=> deleteRoi(true);
     $('btn-verify').onclick = verifyScene;
+    $('btn-verify-ncshot').onclick = verifySceneNcshot;
 
     $('image-input').onchange = loadImage;
     $('xml-input').onchange = loadXml;
@@ -186,10 +244,10 @@
         canvas.renderAll();
         URL.revokeObjectURL(url);
 
-        // POPRAWKA: Rysuj zapisane ROI po załadowaniu obrazu
+        // Rysuj zapisane ROI po załadowaniu obrazu
         if (storedRois.length > 0) {
             drawRois(storedRois);
-            storedRois = []; // Wyczyść po narysowaniu
+            storedRois = []; 
             notyf.info('Narysowano wcześniej zaimportowane ROI.');
         }
     });
@@ -291,7 +349,7 @@
   function roisOut(){
       return canvas.getObjects().filter(o => o.customData).map(o => {
           const bg = canvas.backgroundImage;
-          if (bg && o.points && o.dirty) { // Re-calculate points if object was moved/scaled
+          if (bg && o.points && o.dirty) { 
                 const matrix = o.calcTransformMatrix();
                 const updatedPoints = o.points.map(p => {
                     const transformedPoint = fabric.util.transformPoint({x: p.x, y: p.y}, matrix);
@@ -320,7 +378,6 @@
       $('swdallow-masks').value = data.swdallowMasks || '';
       $('nativeallow-masks').value = data.nativeallowMasks || '';
 
-      // POPRAWKA: Zapisz ROI, zamiast próbować je rysować
       if(data.rois && data.rois.length){
           storedRois = data.rois;
           notyf.success(`Zaimportowano konfigurację i ${data.rois.length} ROI. Zostaną narysowane po wczytaniu obrazu.`);
@@ -376,10 +433,9 @@
                 canvas.setHeight(fabricImg.height);
                 notyf.success('Załadowano tło');
 
-                // POPRAWKA: Rysuj zapisane ROI po załadowaniu obrazu
                 if (storedRois.length > 0) {
                     drawRois(storedRois);
-                    storedRois = []; // Wyczyść po narysowaniu
+                    storedRois = []; 
                     notyf.info('Narysowano wcześniej zaimportowane ROI.');
                 }
             });
@@ -431,36 +487,105 @@
   function formatVerificationResults(results) {
     let summaryHtml = '';
     let detailsText = '';
+    let rawData = '';
+    let platesHtml = '';
+    let vehiclesHtml = '';
+    let tunnelInfoHtml = '';
 
     if (results.verification_type === 'ncsim_verification') {
       const sim_results = results.results;
       summaryHtml = `
         <div class="result-summary">
-          <strong>📊 PODSUMOWANIE SYMULACJI (NCSim)</strong><br>
-          ✅ Rozpoznanie Silne (recog-strong): <strong>${sim_results.recog_strong !== null ? sim_results.recog_strong.toFixed(2) + '%' : 'N/A'}</strong><br>
-          ☑️ Rozpoznanie Słabe (recog-weak): <strong>${sim_results.recog_weak !== null ? sim_results.recog_weak.toFixed(2) + '%' : 'N/A'}</strong><br>
+          <strong>🔬 SYMULACJA NCSIM</strong><span class="method-badge">SSH Exec</span><br>
+          ✅ Rozpoznanie Silne: <strong>${sim_results.recog_strong !== null ? sim_results.recog_strong.toFixed(2) + '%' : 'N/A'}</strong><br>
+          ☑️ Rozpoznanie Słabe: <strong>${sim_results.recog_weak !== null ? sim_results.recog_weak.toFixed(2) + '%' : 'N/A'}</strong><br>
           ⚙️ Metoda: ${results.processing_method}<br>
-          ⏱️ Czas przetwarzania: ${sim_results.processing_time || 'N/A'}
+          ⏱️ Czas: ${sim_results.processing_time || 'N/A'}
         </div>`;
 
       detailsText = `=== WYNIKI SYMULACJI NCSIM ===\n\n`;
-      detailsText += `Pełny wynik z terminala:\n--------------------------\n`;
-      detailsText += sim_results.ncsim_output || 'Brak danych wyjściowych z ncsim.';
-      detailsText += `\n--------------------------\n\n`;
+      detailsText += `Status: ${sim_results.processing_successful ? 'SUKCES' : 'BŁĄD'}\n`;
+      detailsText += `Rozpoznanie silne: ${sim_results.recog_strong || 'N/A'}%\n`;
+      detailsText += `Rozpoznanie słabe: ${sim_results.recog_weak || 'N/A'}%\n`;
+      detailsText += `Czas przetwarzania: ${sim_results.processing_time || 'N/A'}\n\n`;
 
-      if(sim_results.processing_successful){
-          detailsText += "✅ Symulacja zakończona powodzeniem.\n";
-      } else if (sim_results.error) {
-          detailsText += `❌ Błąd podczas przetwarzania wyniku: ${sim_results.error}\n`;
-      } else {
-          detailsText += "⚠️ Symulacja nie zwróciła wyniku lub wynik był niejednoznaczny.\n";
+      rawData = sim_results.ncsim_output || 'Brak danych wyjściowych z ncsim.';
+
+    } else if (results.verification_type === 'ncshot_verification') {
+      const shot_results = results.results;
+      
+      summaryHtml = `
+        <div class="result-summary">
+          <strong>🎯 ANALIZA NCSHOT</strong><span class="method-badge">SSH Tunnel</span><br>
+          📋 Tablice wykryte: <strong>${shot_results.summary?.plates_detected || 0}</strong><br>
+          🚗 Pojazdy wykryte: <strong>${shot_results.summary?.vehicles_detected || 0}</strong><br>
+          ✅ Najwyższa pewność tablicy: <strong>${(shot_results.summary?.best_plate_confidence * 100 || 0).toFixed(1)}%</strong><br>
+          🚙 Najwyższa pewność pojazdu: <strong>${(shot_results.summary?.best_vehicle_confidence * 100 || 0).toFixed(1)}%</strong><br>
+          🔗 Token: ${results.token_used || 'N/A'}
+        </div>`;
+
+      // Informacje o tunelu SSH
+      if (results.tunnel_info) {
+        tunnelInfoHtml = `
+          <div class="tunnel-info">
+            🔀 <strong>SSH Tunnel:</strong> ${results.tunnel_info} → terminal:5543<br>
+            📡 Metoda: ${results.processing_method}
+          </div>`;
       }
 
+      // Tablice
+      if (shot_results.plates && shot_results.plates.length > 0) {
+        platesHtml = '<h4>📋 Wykryte tablice:</h4>';
+        shot_results.plates.forEach((plate, i) => {
+          platesHtml += `
+            <div class="plate-result">
+              <strong>Tablica ${i+1}:</strong> ${plate.text || 'N/A'}<br>
+              <strong>Kraj:</strong> ${plate.country || 'N/A'} | 
+              <strong>Pewność:</strong> ${(plate.confidence * 100).toFixed(1)}% | 
+              <strong>Typ:</strong> ${plate.type || 'N/A'}<br>
+              <strong>Pozycja:</strong> ${plate.position || 'N/A'}
+              ${plate.image ? `<br><img src="${plate.image}" class="plate-image" alt="Obraz tablicy ${i+1}">` : ''}
+            </div>`;
+        });
+      }
+
+      // Pojazdy
+      if (shot_results.vehicles && shot_results.vehicles.length > 0) {
+        vehiclesHtml = '<h4>🚗 Wykryte pojazdy:</h4>';
+        shot_results.vehicles.forEach((vehicle, i) => {
+          vehiclesHtml += `
+            <div class="vehicle-result">
+              <strong>Pojazd ${i+1}:</strong><br>
+              <strong>Marka:</strong> ${vehicle.make || 'N/A'} | 
+              <strong>Model:</strong> ${vehicle.model || 'N/A'}<br>
+              <strong>Typ:</strong> ${vehicle.type || 'N/A'} | 
+              <strong>Kolor:</strong> ${vehicle.color || 'N/A'}<br>
+              <strong>Pewność:</strong> ${(vehicle.confidence * 100).toFixed(1)}% | 
+              <strong>Prędkość:</strong> ${vehicle.speed || '0'} km/h
+            </div>`;
+        });
+      }
+
+      detailsText = `=== SZCZEGÓŁOWE WYNIKI NCSHOT ===\n\n`;
+      detailsText += `Status przetwarzania: ${shot_results.summary?.processing_successful ? 'SUKCES' : 'BŁĄD'}\n`;
+      detailsText += `Liczba wykrytych tablic: ${shot_results.summary?.plates_detected || 0}\n`;
+      detailsText += `Liczba wykrytych pojazdów: ${shot_results.summary?.vehicles_detected || 0}\n`;
+      detailsText += `Token użyty: ${results.token_used || 'N/A'}\n`;
+      detailsText += `SSH Tunnel: ${results.tunnel_info || 'N/A'}\n\n`;
+
+      if (shot_results.timestamp) {
+        detailsText += `Znacznik czasu: ${shot_results.timestamp.formatted || 'N/A'}\n\n`;
+      }
+
+      rawData = results.xml_response || 'Brak danych XML.';
+
     } else {
-        summaryHtml = `<div class="result-error">Nieznany format odpowiedzi: ${results.verification_type}</div>`;
+        summaryHtml = `<div class="result-error">❌ Nieznany format odpowiedzi: ${results.verification_type}</div>`;
         detailsText = JSON.stringify(results, null, 2);
+        rawData = JSON.stringify(results, null, 2);
     }
-    return { summaryHtml, detailsText };
+
+    return { summaryHtml, detailsText, rawData, platesHtml, vehiclesHtml, tunnelInfoHtml };
   }
 
   async function generatePackage(){
@@ -495,43 +620,62 @@
   }
 
   async function verifyScene(){
+    await runVerification('/verify-scene/', 'NCSim', '🔬');
+  }
+
+  async function verifySceneNcshot(){
+    await runVerification('/verify-scene-ncshot/', 'NCShot', '🎯');
+  }
+
+  function getPackageData(){
     if(editPoly) toggleEdit();
     const rois = roisOut();
+    const deployment = {
+      serialNumber: $('serial-number').value,
+      locationId: $('location-id').value,
+      gpsLat: $('gps-lat').value,
+      gpsLon: $('gps-lon').value,
+      backendAddr: $('backend-addr').value,
+      swdallowMasks: $('swdallow-masks').value,
+      nativeallowMasks: $('nativeallow-masks').value
+    };
+    return { rois, deployment };
+  }
+
+  async function runVerification(endpoint, methodName, icon){
+    const packageData = getPackageData();
+    const rois = packageData.rois;
+    
     if(!rois.length) return notyf.error('Dodaj ROI przed weryfikacją');
 
     if (!canvas.backgroundImage) {
-        return notyf.error('Załaduj obraz tła, aby uruchomić weryfikację NCSim.');
+        return notyf.error(`Załaduj obraz tła, aby uruchomić weryfikację ${methodName}.`);
     }
-    const imageBase64 = canvas.toDataURL();
-
-    const deployment = {
-         serialNumber:$('serial-number').value,
-         locationId:$('location-id').value,
-         gpsLat:$('gps-lat').value,
-         gpsLon:$('gps-lon').value,
-         backendAddr:$('backend-addr').value,
-         swdallowMasks:$('swdallow-masks').value,
-         nativeallowMasks:$('nativeallow-masks').value
-       };
 
     const terminalIp = $('device-ip').value;
     if(!terminalIp) return notyf.error('Podaj IP terminala');
 
+    const payload = {
+      package: packageData,
+      password: $('device-pass').value,
+      terminal_ip: terminalIp,
+      image_base64: canvas.toDataURL()
+    };
+
     $('panel-verify').style.display='block';
-    $('verify-summary').innerHTML = '<div style="color: #2196f3;">🔄 Uruchamiam symulację ROI z NCSim...</div>';
-    $('verify-out').textContent = 'Łączenie z terminalem, przygotowywanie konfiguracji i obrazu...';
+    $('verify-summary').innerHTML = `<div style="color: #2196f3;">${icon} Uruchamiam weryfikację ${methodName}...</div>`;
+    $('verify-details').textContent = `Łączenie z terminalem ${terminalIp}, przygotowywanie środowiska...`;
+    $('verify-raw').textContent = 'Oczekiwanie na dane...';
+    $('verify-plates').innerHTML = '';
+    $('verify-vehicles').innerHTML = '';
+    $('verify-tunnel-info').innerHTML = '';
 
     showLoader();
     try{
-      const res = await fetch('/verify-scene/', {
+      const res = await fetch(endpoint, {
         method:'POST',
         headers:{'Content-Type':'application/json'},
-        body:JSON.stringify({
-            package:{ rois, deployment },
-            password:$('device-pass').value,
-            terminal_ip: terminalIp,
-            image_base64: imageBase64
-        })
+        body:JSON.stringify(payload)
       });
       const data = await res.json();
 
@@ -540,20 +684,26 @@
       }
 
       if (data.success && data.parsed_recognition_data) {
-        const { summaryHtml, detailsText } = formatVerificationResults(data.parsed_recognition_data);
-        $('verify-summary').innerHTML = summaryHtml;
-        $('verify-out').textContent = detailsText;
-        notyf.success('Symulacja zakończona');
+        const formatted = formatVerificationResults(data.parsed_recognition_data);
+        $('verify-summary').innerHTML = formatted.summaryHtml;
+        $('verify-details').textContent = formatted.detailsText;
+        $('verify-raw').textContent = formatted.rawData;
+        $('verify-plates').innerHTML = formatted.platesHtml;
+        $('verify-vehicles').innerHTML = formatted.vehiclesHtml;
+        $('verify-tunnel-info').innerHTML = formatted.tunnelInfoHtml;
+        notyf.success(`Weryfikacja ${methodName} zakończona`);
       } else {
-        $('verify-summary').innerHTML = '<div class="result-error">❌ Błąd przetwarzania wyników</div>';
-        $('verify-out').textContent = `Błąd: ${data.error || 'Brak danych'}`;
-        notyf.error('Błąd podczas symulacji');
+        $('verify-summary').innerHTML = `<div class="result-error">❌ Błąd przetwarzania wyników ${methodName}</div>`;
+        $('verify-details').textContent = `Błąd: ${data.error || 'Brak danych'}`;
+        $('verify-raw').textContent = JSON.stringify(data, null, 2);
+        notyf.error(`Błąd podczas weryfikacji ${methodName}`);
       }
 
     }catch(e){
       $('verify-summary').innerHTML = `<div class="result-error">❌ Błąd krytyczny: ${e.message}</div>`;
-      $('verify-out').textContent = 'Sprawdź konsolę przeglądarki i logi serwera FastAPI, aby uzyskać więcej informacji.';
-      notyf.error('Weryfikacja nieudana: ' + e.message, {duration: 6000});
+      $('verify-details').textContent = 'Sprawdź konsolę przeglądarki i logi serwera FastAPI, aby uzyskać więcej informacji.';
+      $('verify-raw').textContent = `Error: ${e.message}\nEndpoint: ${endpoint}`;
+      notyf.error(`Weryfikacja ${methodName} nieudana: ` + e.message, {duration: 6000});
     }finally{
       hideLoader();
     }

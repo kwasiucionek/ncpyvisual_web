@@ -33,7 +33,7 @@ end
 # Unset irrelevant variables.
 deactivate nondestructive
 
-set -gx VIRTUAL_ENV /home/kwasiucionek/Nextcloud/Praca/ncar/ncpvisual2/ncpyvisual2/venv
+set -gx VIRTUAL_ENV /home/kwasiucionek/Nextcloud/Praca/ncar/ncpvisual2/ncpyvisual_web/venv
 
 set -gx _OLD_VIRTUAL_PATH $PATH
 set -gx PATH "$VIRTUAL_ENV/"bin $PATH

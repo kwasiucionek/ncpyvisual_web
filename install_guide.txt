@@ -1,0 +1,98 @@
+# NCPyVisual Web - Instrukcje Instalacji
+
+## 🚀 Szybka instalacja (automatyczna)
+
+```bash
+# 1. Sklonuj projekt
+git clone <repository-url>
+cd ncpyvisual_web
+
+# 2. Uruchom automatyczną instalację  
+chmod +x setup.sh
+./setup.sh
+
+# 3. Skonfiguruj .env
+nano .env  # Uzupełnij JUMP_HOST_USER i JUMP_HOST_PASS
+
+# 4. Dodaj plik ncsim
+cp /path/to/ncsim bin/ncsim
+chmod +x bin/ncsim
+
+# 5. Uruchom
+./start.sh
+```
+
+**Aplikacja dostępna na: http://localhost:8000**
+
+---
+
+## 📋 Wymagania systemowe
+
+- **Python**: 3.8+ (zalecane 3.10-3.11, obsługuje 3.12)
+- **System**: Linux, macOS, Windows (WSL)
+- **RAM**: min. 2GB
+- **Sieć**: dostęp do jump host i terminali
+- **Pliki**: plik binarny `ncsim`
+
+---
+
+## 🐍 Instalacja dla różnych wersji Python
+
+### **Python 3.12+ (nowa wersja)**
+```bash
+# Problem z distutils - użyj naszego skryptu
+./setup.sh
+
+# LUB ręcznie:
+python3 -m pip install --upgrade pip setuptools wheel
+python3 -m pip install -r requirements.txt
+```
+
+### **Python 3.8-3.11 (stabilne)**
+```bash
+# Standardowa instalacja
+python3 -m pip install --upgrade pip
+python3 -m pip install -r requirements.txt
+```
+
+### **Python < 3.8 (stare wersje)**
+```bash
+# Upgrade Python lub użyj pyenv
+sudo apt update && sudo apt install python3.10
+# LUB
+curl https://pyenv.run | bash
+pyenv install 3.10.12
+pyenv local 3.10.12
+```
+
+---
+
+## 💻 Instalacja na różnych systemach
+
+### **Ubuntu/Debian**
+
+```bash
+# 1. Podstawowe pakiety
+sudo apt update
+sudo apt install python3 python3-pip python3-venv git
+
+# 2. Dla Python 3.12 (jeśli potrzebne)
+sudo apt install python3-setuptools python3-wheel
+
+# 3. Sklonuj i zainstaluj
+git clone <repo>
+cd ncpyvisual_web
+python3 -m venv venv
+source venv/bin/activate
+pip install -r requirements.txt
+
+# 4. Konfiguracja
+cp .env.example .env
+nano .env
+```
+
+### **CentOS/RHEL/Fedora**
+
+```bash
+# 1. Pakiety systemowe
+sudo dnf install pytho
