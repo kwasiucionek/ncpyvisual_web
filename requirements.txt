@@ -1,33 +1,8 @@
-# requirements.txt - POPRAWIONE DLA PYTHON 3.12
-# Najpierw setuptools (rozwiązuje problem distutils)
-setuptools>=68.0.0
-wheel>=0.41.0
-
-# Core FastAPI dependencies
 fastapi==0.104.1
 uvicorn[standard]==0.24.0
-jinja2==3.1.2
 python-multipart==0.0.6
-
-# Data processing
-pandas==2.1.3
-numpy==1.25.2
-lxml==4.9.3
-
-# SSH and networking
+jinja2==3.1.2
 paramiko==3.3.1
-requests==2.31.0
-urllib3==2.0.7
-
-# Validation and configuration  
-pydantic==2.5.0
-
-# Compression and archives
 py7zr==0.20.6
-
-# Additional HTTP features
-requests[security]==2.31.0
-aiofiles==23.2.1
-
-# Development and debugging (optional)
 python-dotenv==1.0.0
+pydantic==2.5.0
